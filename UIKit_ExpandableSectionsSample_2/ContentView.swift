@@ -115,14 +115,23 @@ class DisclosureTableViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let node = flatData[indexPath.row]
-        tableView.register(CustomCell.self, forCellReuseIdentifier: "cell")
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as! CustomCell
-
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        
         cell.selectionStyle = .none
+        
         let level = getLevel(of: node)
         cell.indentationLevel = level
         cell.indentationWidth = 20
-        cell.textLabel?.text = node.title
+
+        // 名前の前に常に Folder アイコン
+        let icon = UIImage(systemName: "folder.fill")
+        let attachment = NSTextAttachment()
+        attachment.image = icon
+        attachment.bounds = CGRect(x: 0, y: -2, width: 16, height: 16)
+        let attributedText = NSMutableAttributedString(attachment: attachment)
+        attributedText.append(NSAttributedString(string: " \(node.title)"))
+        
+        cell.textLabel?.attributedText = attributedText
         
         // 子ノードがある場合は矢印
         if !node.children.isEmpty {
@@ -139,18 +148,10 @@ class DisclosureTableViewController: UITableViewController {
             cell.accessoryView = nil
         }
         
-        // Folder アイコンをテキストの前に
-        if !node.children.isEmpty {
-            cell.imageView?.image = UIImage(systemName: "folder.fill")
-        } else {
-            cell.imageView?.image = UIImage(systemName: "doc.fill")
-        }
-        
-        cell.imageView?.tintColor = .systemBlue
-        
         return cell
     }
 
+    
     
     // MARK: - Toggle Node
     
@@ -237,27 +238,28 @@ class Node {
 class CustomCell: UITableViewCell {
     let iconView = UIImageView()
     let titleLabel = UILabel()
-
+    
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
-
+        
         contentView.addSubview(iconView)
         contentView.addSubview(titleLabel)
-
+        
         iconView.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-
+        
         NSLayoutConstraint.activate([
-            iconView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            iconView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20), // 自前マージン
             iconView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             iconView.widthAnchor.constraint(equalToConstant: 20),
             iconView.heightAnchor.constraint(equalToConstant: 20),
-
-            titleLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 4), // 間隔を4に
+            
+            titleLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 8),
             titleLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -16)
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -20)
         ])
     }
-
+    
     required init?(coder: NSCoder) { fatalError() }
 }
+

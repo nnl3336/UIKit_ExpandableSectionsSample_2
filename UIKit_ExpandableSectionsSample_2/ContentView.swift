@@ -114,7 +114,6 @@ class DisclosureTableViewController: UITableViewController {
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-
         let node = flatData[indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
         
@@ -124,6 +123,7 @@ class DisclosureTableViewController: UITableViewController {
         cell.indentationWidth = 20
         cell.textLabel?.text = node.title
         
+        // 子ノードがある場合は矢印
         if !node.children.isEmpty {
             let arrow = UIImageView(image: UIImage(systemName: "chevron.right"))
             arrow.tintColor = .systemGray
@@ -133,15 +133,24 @@ class DisclosureTableViewController: UITableViewController {
             let tap = UITapGestureRecognizer(target: self, action: #selector(toggleNode(_:)))
             arrow.addGestureRecognizer(tap)
             tap.view?.tag = indexPath.row
-            
             cell.accessoryView = arrow
         } else {
             cell.accessoryView = nil
         }
-
+        
+        // Folder アイコンをテキストの前に
+        if !node.children.isEmpty {
+            cell.imageView?.image = UIImage(systemName: "folder.fill")
+        } else {
+            cell.imageView?.image = UIImage(systemName: "doc.fill")
+        }
+        
+        cell.imageView?.tintColor = .systemBlue
+        
         return cell
     }
 
+    
     // MARK: - Toggle Node
     
     @objc func toggleNode(_ sender: UITapGestureRecognizer) {

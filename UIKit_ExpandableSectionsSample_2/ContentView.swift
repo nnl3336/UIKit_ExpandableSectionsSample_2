@@ -137,32 +137,31 @@ class DisclosureTableViewController: UITableViewController {
         guard !node.children.isEmpty else { return }
 
         node.isExpanded.toggle()
-        let oldFlatData = flatData
-        flatData = flatten(nodes: data)
-
+        
         tableView.beginUpdates()
         
+        let startIndex = row + 1
+        let indexPaths = node.children.enumerated().map { (i, _) in
+            IndexPath(row: startIndex + i, section: 0)
+        }
+        
         if node.isExpanded {
-            // 展開
-            let startIndex = row + 1
-            let endIndex = startIndex + node.children.count
-            let indexPaths = (startIndex..<endIndex).map { IndexPath(row: $0, section: 0) }
+            // 展開 → flatData に子を挿入
+            flatData.insert(contentsOf: node.children, at: startIndex)
             tableView.insertRows(at: indexPaths, with: .fade)
         } else {
-            // 折りたたみ
-            let startIndex = row + 1
-            let countToRemove = oldFlatData.count - flatData.count
-            let indexPaths = (startIndex..<startIndex+countToRemove).map { IndexPath(row: $0, section: 0) }
+            // 折りたたみ → flatData から子を削除
+            flatData.removeSubrange(startIndex..<startIndex + node.children.count)
             tableView.deleteRows(at: indexPaths, with: .fade)
         }
 
-        // 矢印回転アニメーション
+        // 矢印回転
         if let arrow = tableView.cellForRow(at: IndexPath(row: row, section: 0))?.accessoryView as? UIImageView {
             UIView.animate(withDuration: 0.25) {
                 arrow.transform = node.isExpanded ? CGAffineTransform(rotationAngle: .pi/2) : .identity
             }
         }
-
+        
         tableView.endUpdates()
     }
 }

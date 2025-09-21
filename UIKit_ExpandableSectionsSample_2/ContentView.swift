@@ -82,6 +82,19 @@ class DisclosureTableViewController: UITableViewController {
         }
         return result
     }
+    
+    func removeDescendants(of node: Node, from flatData: inout [Node]) {
+        for child in node.children {
+            if let index = flatData.firstIndex(where: { $0 === child }) {
+                flatData.remove(at: index)
+                if child.isExpanded {
+                    child.isExpanded = false
+                    removeDescendants(of: child, from: &flatData)
+                }
+            }
+        }
+    }
+
 
     func getLevel(of node: Node) -> Int {
         func search(_ nodes: [Node], level: Int) -> Int? {

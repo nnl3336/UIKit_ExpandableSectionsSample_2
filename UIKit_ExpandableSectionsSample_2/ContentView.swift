@@ -115,8 +115,9 @@ class DisclosureTableViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let node = flatData[indexPath.row]
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        
+        tableView.register(CustomCell.self, forCellReuseIdentifier: "cell")
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as! CustomCell
+
         cell.selectionStyle = .none
         let level = getLevel(of: node)
         cell.indentationLevel = level
@@ -230,3 +231,34 @@ class Node {
         self.children = children
     }
 }
+
+//
+
+class CustomCell: UITableViewCell {
+    let iconView = UIImageView()
+    let titleLabel = UILabel()
+    
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: style, reuseIdentifier: reuseIdentifier)
+        
+        contentView.addSubview(iconView)
+        contentView.addSubview(titleLabel)
+        
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        NSLayoutConstraint.activate([
+            iconView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20), // 自前マージン
+            iconView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            iconView.widthAnchor.constraint(equalToConstant: 20),
+            iconView.heightAnchor.constraint(equalToConstant: 20),
+            
+            titleLabel.leadingAnchor.constraint(equalTo: iconView.trailingAnchor, constant: 8),
+            titleLabel.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -20)
+        ])
+    }
+    
+    required init?(coder: NSCoder) { fatalError() }
+}
+

@@ -113,25 +113,34 @@ class DisclosureTableViewController: UITableViewController {
         return flatData.count
     }
     
+    override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        let node = flatData[indexPath.row]
+        let level = getLevel(of: node)
+        
+        // imageView がある場合のみ適用
+        if let imageView = cell.imageView {
+            let indentationOffset = CGFloat(level) * cell.indentationWidth
+            imageView.frame = CGRect(
+                x: indentationOffset,
+                y: imageView.frame.origin.y,
+                width: imageView.frame.width,
+                height: imageView.frame.height
+            )
+        }
+    }
+
+    
+    
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let node = flatData[indexPath.row]
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        
+        tableView.register(CustomCell.self, forCellReuseIdentifier: "cell")
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as! CustomCell
+
         cell.selectionStyle = .none
-        
         let level = getLevel(of: node)
         cell.indentationLevel = level
         cell.indentationWidth = 20
-
-        // 名前の前に常に Folder アイコン
-        let icon = UIImage(systemName: "folder.fill")
-        let attachment = NSTextAttachment()
-        attachment.image = icon
-        attachment.bounds = CGRect(x: 0, y: -2, width: 16, height: 16)
-        let attributedText = NSMutableAttributedString(attachment: attachment)
-        attributedText.append(NSAttributedString(string: " \(node.title)"))
-        
-        cell.textLabel?.attributedText = attributedText
+        cell.textLabel?.text = node.title
         
         // 子ノードがある場合は矢印
         if !node.children.isEmpty {
@@ -148,10 +157,18 @@ class DisclosureTableViewController: UITableViewController {
             cell.accessoryView = nil
         }
         
+        // Folder アイコンをテキストの前に
+        if !node.children.isEmpty {
+            cell.imageView?.image = UIImage(systemName: "folder.fill")
+        } else {
+            cell.imageView?.image = UIImage(systemName: "doc.fill")
+        }
+        
+        cell.imageView?.tintColor = .systemBlue
+        
         return cell
     }
 
-    
     
     // MARK: - Toggle Node
     

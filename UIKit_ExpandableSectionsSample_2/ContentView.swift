@@ -36,12 +36,21 @@ struct DisclosureTableView: UIViewControllerRepresentable {
 
 class DisclosureTableViewController: UITableViewController {
     
+    class Node {
+        let title: String
+        var children: [Node]
+        var isExpanded: Bool = false
+        init(title: String, children: [Node] = []) {
+            self.title = title
+            self.children = children
+        }
+    }
+    
     var data: [Node] = []
     var flatData: [Node] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
         
         // サンプルデータ
@@ -63,6 +72,28 @@ class DisclosureTableViewController: UITableViewController {
         flatData = flatten(nodes: data)
     }
 
+    func flatten(nodes: [Node]) -> [Node] {
+        var result: [Node] = []
+        for node in nodes {
+            result.append(node)
+            if node.isExpanded {
+                result.append(contentsOf: flatten(nodes: node.children))
+            }
+        }
+        return result
+    }
+
+    func getLevel(of node: Node) -> Int {
+        func search(_ nodes: [Node], level: Int) -> Int? {
+            for n in nodes {
+                if n === node { return level }
+                if let l = search(n.children, level: level + 1) { return l }
+            }
+            return nil
+        }
+        return search(data, level: 0) ?? 0
+    }
+
     // MARK: - UITableViewDataSource
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -74,35 +105,31 @@ class DisclosureTableViewController: UITableViewController {
         let node = flatData[indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
         
-        // インデントで階層を表現
+        cell.selectionStyle = .none
         let level = getLevel(of: node)
         cell.indentationLevel = level
         cell.indentationWidth = 20
-        
         cell.textLabel?.text = node.title
         
-        let arrow = UIImageView(image: UIImage(systemName: node.isExpanded ? "chevron.down" : "chevron.right"))
-        arrow.tintColor = .systemGray
-        cell.accessoryView = arrow
-
-        cell.selectionStyle = .none
-        cell.accessoryView?.isUserInteractionEnabled = true
-
-        let tap = UITapGestureRecognizer(target: self, action: #selector(toggleNode(_:)))
-        cell.accessoryView?.addGestureRecognizer(tap)
-        tap.view?.tag = indexPath.row // 後でどのノードか判定する
-
-        
-        // アクセサリ矢印
         if !node.children.isEmpty {
-            let imageName = node.isExpanded ? "chevron.down" : "chevron.right"
-            cell.accessoryView = UIImageView(image: UIImage(systemName: imageName))
+            let arrow = UIImageView(image: UIImage(systemName: "chevron.right"))
+            arrow.tintColor = .systemGray
+            arrow.transform = node.isExpanded ? CGAffineTransform(rotationAngle: .pi/2) : .identity
+            arrow.isUserInteractionEnabled = true
+            
+            let tap = UITapGestureRecognizer(target: self, action: #selector(toggleNode(_:)))
+            arrow.addGestureRecognizer(tap)
+            tap.view?.tag = indexPath.row
+            
+            cell.accessoryView = arrow
         } else {
             cell.accessoryView = nil
         }
 
         return cell
     }
+
+    // MARK: - Toggle Node
     
     @objc func toggleNode(_ sender: UITapGestureRecognizer) {
         guard let row = sender.view?.tag else { return }
@@ -110,58 +137,33 @@ class DisclosureTableViewController: UITableViewController {
         guard !node.children.isEmpty else { return }
 
         node.isExpanded.toggle()
-        
         let oldFlatData = flatData
         flatData = flatten(nodes: data)
-        
+
         tableView.beginUpdates()
         
         if node.isExpanded {
-            // 展開 → 新しい行を挿入
+            // 展開
             let startIndex = row + 1
             let endIndex = startIndex + node.children.count
             let indexPaths = (startIndex..<endIndex).map { IndexPath(row: $0, section: 0) }
             tableView.insertRows(at: indexPaths, with: .fade)
         } else {
-            // 折りたたみ → 子行を削除
+            // 折りたたみ
             let startIndex = row + 1
             let countToRemove = oldFlatData.count - flatData.count
-            let indexPaths = (startIndex..<startIndex + countToRemove).map { IndexPath(row: $0, section: 0) }
+            let indexPaths = (startIndex..<startIndex+countToRemove).map { IndexPath(row: $0, section: 0) }
             tableView.deleteRows(at: indexPaths, with: .fade)
         }
-        
+
         // 矢印回転アニメーション
         if let arrow = tableView.cellForRow(at: IndexPath(row: row, section: 0))?.accessoryView as? UIImageView {
             UIView.animate(withDuration: 0.25) {
                 arrow.transform = node.isExpanded ? CGAffineTransform(rotationAngle: .pi/2) : .identity
             }
         }
-        
+
         tableView.endUpdates()
-    }
-
-
-    // MARK: - UITableViewDelegate
-    
-    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        let node = flatData[indexPath.row]
-        guard !node.children.isEmpty else { return }
-
-        node.isExpanded.toggle()
-        flatData = flatten(nodes: data)
-        tableView.reloadData()
-    }
-
-    // 階層の深さを取得
-    func getLevel(of node: Node) -> Int {
-        func search(_ nodes: [Node], level: Int) -> Int? {
-            for n in nodes {
-                if n === node { return level }
-                if let l = search(n.children, level: level + 1) { return l }
-            }
-            return nil
-        }
-        return search(data, level: 0) ?? 0
     }
 }
 

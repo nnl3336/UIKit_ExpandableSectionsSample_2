@@ -81,6 +81,18 @@ class DisclosureTableViewController: UITableViewController {
         
         cell.textLabel?.text = node.title
         
+        let arrow = UIImageView(image: UIImage(systemName: node.isExpanded ? "chevron.down" : "chevron.right"))
+        arrow.tintColor = .systemGray
+        cell.accessoryView = arrow
+
+        cell.selectionStyle = .none
+        cell.accessoryView?.isUserInteractionEnabled = true
+
+        let tap = UITapGestureRecognizer(target: self, action: #selector(toggleNode(_:)))
+        cell.accessoryView?.addGestureRecognizer(tap)
+        tap.view?.tag = indexPath.row // 後でどのノードか判定する
+
+        
         // アクセサリ矢印
         if !node.children.isEmpty {
             let imageName = node.isExpanded ? "chevron.down" : "chevron.right"
@@ -91,6 +103,43 @@ class DisclosureTableViewController: UITableViewController {
 
         return cell
     }
+    
+    @objc func toggleNode(_ sender: UITapGestureRecognizer) {
+        guard let row = sender.view?.tag else { return }
+        let node = flatData[row]
+        guard !node.children.isEmpty else { return }
+
+        node.isExpanded.toggle()
+        
+        let oldFlatData = flatData
+        flatData = flatten(nodes: data)
+        
+        tableView.beginUpdates()
+        
+        if node.isExpanded {
+            // 展開 → 新しい行を挿入
+            let startIndex = row + 1
+            let endIndex = startIndex + node.children.count
+            let indexPaths = (startIndex..<endIndex).map { IndexPath(row: $0, section: 0) }
+            tableView.insertRows(at: indexPaths, with: .fade)
+        } else {
+            // 折りたたみ → 子行を削除
+            let startIndex = row + 1
+            let countToRemove = oldFlatData.count - flatData.count
+            let indexPaths = (startIndex..<startIndex + countToRemove).map { IndexPath(row: $0, section: 0) }
+            tableView.deleteRows(at: indexPaths, with: .fade)
+        }
+        
+        // 矢印回転アニメーション
+        if let arrow = tableView.cellForRow(at: IndexPath(row: row, section: 0))?.accessoryView as? UIImageView {
+            UIView.animate(withDuration: 0.25) {
+                arrow.transform = node.isExpanded ? CGAffineTransform(rotationAngle: .pi/2) : .identity
+            }
+        }
+        
+        tableView.endUpdates()
+    }
+
 
     // MARK: - UITableViewDelegate
     
@@ -128,6 +177,7 @@ func flatten(nodes: [Node]) -> [Node] {
 }
 
 var flatData: [Node] = flatten(nodes: data)
+
 
 
 
